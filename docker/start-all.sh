@@ -93,4 +93,4 @@ echo \"🔑 Contraseña: $ADMIN_PASSWORD\"
 # Iniciar Frappe
 echo "🚀 Iniciando servidor Frappe..."
 cd /home/frappe/frappe-bench
-su - frappe -c "cd /home/frappe/frappe-bench && bench start --bind 0.0.0.0 --port 8000"
+su - frappe -c "cd /home/frappe/frappe-bench && bench serve --host 0.0.0.0 --port 8000"
