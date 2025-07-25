@@ -37,10 +37,10 @@ RUN npm install -g yarn
 RUN useradd -m -s /bin/bash frappe && \
     usermod -aG sudo frappe
 
-# Configurar MariaDB - configuración básica, las contraseñas se configurarán en runtime
-RUN service mariadb start && \
-    mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'temp_password';" && \
-    service mariadb stop
+# Configurar MariaDB - solo preparar directorios y permisos
+RUN mkdir -p /var/run/mysqld && \
+    chown mysql:mysql /var/run/mysqld && \
+    chown -R mysql:mysql /var/lib/mysql
 
 # Configurar Redis
 RUN echo "bind 127.0.0.1" >> /etc/redis/redis.conf
