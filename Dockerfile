@@ -5,19 +5,15 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV FRAPPE_ENV=production
 ENV DEVELOPER_MODE=0
-ENV ADMIN_PASSWORD=admin
+# Nota: Las contraseñas se configurarán via variables de entorno en runtime
 ENV SITE_NAME=frappe-crm.localhost
-ENV MYSQL_ROOT_PASSWORD=frappe123
-ENV MYSQL_PASSWORD=frappe456
 
-# Instalar dependencias del sistema
+# Instalar dependencias del sistema (sin Node.js)
 RUN apt-get update && apt-get install -y \
     # Sistema base
     curl wget git build-essential \
     # Python y pip
     python3 python3-pip python3-venv python3-dev \
-    # Node.js y npm
-    nodejs npm \
     # MariaDB
     mariadb-server mariadb-client \
     # Redis
@@ -28,9 +24,11 @@ RUN apt-get update && apt-get install -y \
     fontconfig wkhtmltopdf \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar Node.js 18 (requerido por Frappe)
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs
+# Instalar Node.js 18 (requerido por Frappe) - limpiar conflictos primero
+RUN apt-get purge -y nodejs npm libnode-dev || true && \
+    apt-get autoremove -y && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
 
 # Instalar yarn
 RUN npm install -g yarn
@@ -39,12 +37,10 @@ RUN npm install -g yarn
 RUN useradd -m -s /bin/bash frappe && \
     usermod -aG sudo frappe
 
-# Configurar MariaDB
+# Configurar MariaDB - configuración básica, las contraseñas se configurarán en runtime
 RUN service mariadb start && \
-    mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';" && \
-    mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "CREATE USER 'frappe'@'localhost' IDENTIFIED BY '${MYSQL_PASSWORD}';" && \
-    mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "GRANT ALL PRIVILEGES ON *.* TO 'frappe'@'localhost';" && \
-    mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "FLUSH PRIVILEGES;"
+    mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'temp_password';" && \
+    service mariadb stop
 
 # Configurar Redis
 RUN echo "bind 127.0.0.1" >> /etc/redis/redis.conf
