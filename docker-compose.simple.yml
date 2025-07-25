@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  # Frappe CRM Application (todo-en-uno)
+  frappe-app:
+    build: .
+    container_name: frappe-crm-app
+    restart: unless-stopped
+    environment:
+      - SITE_NAME=${SITE_NAME:-frappe-crm.localhost}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-frappe123}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-frappe456}
+      - FRAPPE_ENV=production
+      - DEVELOPER_MODE=0
+    volumes:
+      - frappe-data:/home/frappe/frappe-bench/sites
+      - ./logs:/home/frappe/frappe-bench/logs
+    networks:
+      - dokploy-network
+    labels:
+      # Traefik configuration for Dokploy
+      - "traefik.enable=true"
+      - "traefik.http.routers.frappe-crm.rule=Host(`${SITE_NAME:-frappe-crm.localhost}`)"
+      - "traefik.http.routers.frappe-crm.entrypoints=websecure"
+      - "traefik.http.routers.frappe-crm.tls.certResolver=letsencrypt"
+      - "traefik.http.services.frappe-crm.loadbalancer.server.port=8000"
+      # Health check endpoint
+      - "traefik.http.routers.frappe-crm.middlewares=frappe-crm-headers"
+      - "traefik.http.middlewares.frappe-crm-headers.headers.customrequestheaders.X-Frappe-Site-Name=${SITE_NAME:-frappe-crm.localhost}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/method/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  frappe-data:
+    driver: local
+
+networks:
+  dokploy-network:
+    external: true
