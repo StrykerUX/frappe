@@ -22,6 +22,8 @@ RUN apt-get update && apt-get install -y \
     nginx supervisor \
     # Herramientas adicionales
     fontconfig wkhtmltopdf \
+    # Dependencias adicionales para Frappe
+    pkg-config libmysqlclient-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar Node.js 18 (requerido por Frappe) - limpiar conflictos primero
