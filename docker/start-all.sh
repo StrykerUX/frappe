@@ -51,32 +51,31 @@ chown -R frappe:frappe /home/frappe/frappe-bench
 su - frappe -c "
 cd /home/frappe/frappe-bench
 
-# Verificar si el sitio ya existe
-if [ ! -d \"sites/$SITE_NAME\" ]; then
-    echo \"🏗️  Creando sitio: $SITE_NAME\"
-    
-    # Obtener aplicación CRM si no existe
-    if [ ! -d \"apps/crm\" ]; then
-        echo \"📦 Obteniendo aplicación CRM...\"
-        bench get-app crm --branch main
-    fi
-    
-    # Crear sitio
-    echo \"🔨 Creando sitio e instalando CRM...\"
-    bench new-site \"$SITE_NAME\" \
-        --admin-password \"$ADMIN_PASSWORD\" \
-        --db-host localhost \
-        --install-app crm \
-        --force
-    
-    echo \"✅ Sitio creado exitosamente\"
-else
-    echo \"📍 Sitio existente: $SITE_NAME\"
-    
-    # Migrar si es necesario
-    echo \"🔄 Ejecutando migraciones...\"
-    bench --site \"$SITE_NAME\" migrate
+# Obtener aplicación CRM si no existe
+if [ ! -d \"apps/crm\" ]; then
+    echo \"📦 Obteniendo aplicación CRM...\"
+    bench get-app crm --branch main
 fi
+
+# Verificar si el sitio ya existe
+if [ -d \"sites/$SITE_NAME\" ]; then
+    echo \"🗑️  Eliminando sitio existente con credenciales antiguas...\"
+    bench drop-site \"$SITE_NAME\" --db-root-password \"$MYSQL_ROOT_PASSWORD\" --force || true
+    rm -rf \"sites/$SITE_NAME\" || true
+fi
+
+echo \"🏗️  Creando sitio: $SITE_NAME\"
+    
+# Crear sitio
+echo \"🔨 Creando sitio e instalando CRM...\"
+bench new-site \"$SITE_NAME\" \
+    --admin-password \"$ADMIN_PASSWORD\" \
+    --db-host localhost \
+    --db-root-password \"$MYSQL_ROOT_PASSWORD\" \
+    --install-app crm \
+    --force
+
+echo \"✅ Sitio creado exitosamente\"
 
 # Configurar sitio por defecto
 echo \"$SITE_NAME\" > sites/currentsite.txt
