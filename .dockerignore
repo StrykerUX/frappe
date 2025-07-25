@@ -1,0 +1,37 @@
+# Archivos de desarrollo
+.git
+.gitignore
+README.md
+docker-compose.yml
+docker-compose.production.yml
+
+# Logs
+*.log
+logs/
+
+# Dependencias de Node.js
+node_modules/
+*/node_modules/
+
+# Build artifacts
+dist/
+build/
+.cache/
+
+# Archivos temporales
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Archivos de configuración local
+.env.local
+.env.development
+
+# Documentación
+DESPLIEGUE-DOKPLOY.md
+*.md
+
+# Backup files
+*.bak
+*.backup
