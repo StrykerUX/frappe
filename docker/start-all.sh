@@ -24,11 +24,13 @@ while ! mysqladmin ping --silent; do
 done
 echo "✅ MariaDB listo"
 
-# Configurar usuarios de base de datos si no existen
+# Configurar usuarios de base de datos
 echo "🔧 Configurando base de datos..."
-mysql -u root -e "CREATE USER IF NOT EXISTS 'frappe'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD';" 2>/dev/null || true
-mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'frappe'@'localhost';" 2>/dev/null || true
-mysql -u root -e "FLUSH PRIVILEGES;" 2>/dev/null || true
+mysql -u root -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('$MYSQL_ROOT_PASSWORD');" 2>/dev/null || true
+mysql -u root -p$MYSQL_ROOT_PASSWORD -e "DROP USER IF EXISTS 'frappe'@'localhost';" 2>/dev/null || true
+mysql -u root -p$MYSQL_ROOT_PASSWORD -e "CREATE USER 'frappe'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD';" 2>/dev/null || true
+mysql -u root -p$MYSQL_ROOT_PASSWORD -e "GRANT ALL PRIVILEGES ON *.* TO 'frappe'@'localhost' WITH GRANT OPTION;" 2>/dev/null || true
+mysql -u root -p$MYSQL_ROOT_PASSWORD -e "FLUSH PRIVILEGES;" 2>/dev/null || true
 
 # Iniciar Redis
 echo "📊 Iniciando Redis..."
@@ -72,6 +74,8 @@ bench new-site \"$SITE_NAME\" \
     --admin-password \"$ADMIN_PASSWORD\" \
     --db-host localhost \
     --db-root-password \"$MYSQL_ROOT_PASSWORD\" \
+    --db-name \"frappe_crm\" \
+    --db-password \"$MYSQL_PASSWORD\" \
     --install-app crm \
     --force
 
