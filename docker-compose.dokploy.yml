@@ -1,0 +1,97 @@
+version: "3.8"
+
+services:
+  # MariaDB Database
+  mariadb:
+    image: mariadb:10.8
+    container_name: frappe-crm-db
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-frappe123}
+      MYSQL_DATABASE: frappe_crm
+      MYSQL_USER: frappe
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-frappe456}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    networks:
+      - dokploy-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis Cache and Queue
+  redis:
+    image: redis:7-alpine
+    container_name: frappe-crm-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - dokploy-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+
+  # Frappe CRM Application
+  frappe-app:
+    build: .
+    container_name: frappe-crm-app
+    restart: unless-stopped
+    environment:
+      - SITE_NAME=${SITE_NAME:-frappe-crm.localhost}
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-frappe123}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-frappe456}
+      - FRAPPE_ENV=production
+      - DEVELOPER_MODE=0
+    volumes:
+      - frappe-data:/home/frappe/frappe-bench/sites
+      - ./logs:/home/frappe/frappe-bench/logs
+    networks:
+      - dokploy-network
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    labels:
+      # Traefik configuration for Dokploy
+      - "traefik.enable=true"
+      - "traefik.http.routers.frappe-crm.rule=Host(`${SITE_NAME:-frappe-crm.localhost}`)"
+      - "traefik.http.routers.frappe-crm.entrypoints=websecure"
+      - "traefik.http.routers.frappe-crm.tls.certResolver=letsencrypt"
+      - "traefik.http.services.frappe-crm.loadbalancer.server.port=8000"
+      # Health check endpoint
+      - "traefik.http.routers.frappe-crm.middlewares=frappe-crm-headers"
+      - "traefik.http.middlewares.frappe-crm-headers.headers.customrequestheaders.X-Frappe-Site-Name=${SITE_NAME:-frappe-crm.localhost}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/method/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  mariadb-data:
+    driver: local
+  redis-data:
+    driver: local
+  frappe-data:
+    driver: local
+
+networks:
+  dokploy-network:
+    external: true
