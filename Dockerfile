@@ -24,6 +24,8 @@ RUN apt-get update && apt-get install -y \
     fontconfig wkhtmltopdf \
     # Dependencias adicionales para Frappe
     pkg-config libmysqlclient-dev \
+    # Cron para backups automáticos
+    cron \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar Node.js 18 (requerido por Frappe) - limpiar conflictos primero
