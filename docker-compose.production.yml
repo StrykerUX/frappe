@@ -1,0 +1,88 @@
+version: "3.8"
+name: frappe-crm-production
+
+services:
+  mariadb:
+    image: mariadb:10.8
+    container_name: frappe-crm-db
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: frappe_crm
+      MYSQL_USER: frappe
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d
+    networks:
+      - frappe-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: frappe-crm-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - frappe-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+
+  frappe:
+    build: .
+    container_name: frappe-crm-app
+    environment:
+      - FRAPPE_ENV=production
+      - SITE_NAME=${SITE_NAME}
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - frappe-data:/home/frappe/frappe-bench/sites
+      - ./logs:/home/frappe/frappe-bench/logs
+    ports:
+      - "${APP_PORT:-8000}:8000"
+      - "${SOCKET_PORT:-9000}:9000"
+    networks:
+      - frappe-network
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/method/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  mariadb-data:
+    driver: local
+  redis-data:
+    driver: local
+  frappe-data:
+    driver: local
+
+networks:
+  frappe-network:
+    driver: bridge
