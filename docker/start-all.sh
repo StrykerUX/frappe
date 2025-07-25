@@ -48,51 +48,50 @@ cd /home/frappe/frappe-bench
 chown -R frappe:frappe /home/frappe/frappe-bench
 
 # Cambiar a usuario frappe para operaciones de bench
-sudo -u frappe bash << 'EOF'
+su - frappe -c "
 cd /home/frappe/frappe-bench
 
 # Verificar si el sitio ya existe
-if [ ! -d "sites/$SITE_NAME" ]; then
-    echo "🏗️  Creando sitio: $SITE_NAME"
+if [ ! -d \"sites/$SITE_NAME\" ]; then
+    echo \"🏗️  Creando sitio: $SITE_NAME\"
     
     # Obtener aplicación CRM si no existe
-    if [ ! -d "apps/crm" ]; then
-        echo "📦 Obteniendo aplicación CRM..."
+    if [ ! -d \"apps/crm\" ]; then
+        echo \"📦 Obteniendo aplicación CRM...\"
         bench get-app crm --branch main
     fi
     
     # Crear sitio
-    echo "🔨 Creando sitio e instalando CRM..."
-    bench new-site "$SITE_NAME" \
-        --admin-password "$ADMIN_PASSWORD" \
+    echo \"🔨 Creando sitio e instalando CRM...\"
+    bench new-site \"$SITE_NAME\" \
+        --admin-password \"$ADMIN_PASSWORD\" \
         --db-host localhost \
         --install-app crm \
         --force
     
-    echo "✅ Sitio creado exitosamente"
+    echo \"✅ Sitio creado exitosamente\"
 else
-    echo "📍 Sitio existente: $SITE_NAME"
+    echo \"📍 Sitio existente: $SITE_NAME\"
     
     # Migrar si es necesario
-    echo "🔄 Ejecutando migraciones..."
-    bench --site "$SITE_NAME" migrate
+    echo \"🔄 Ejecutando migraciones...\"
+    bench --site \"$SITE_NAME\" migrate
 fi
 
 # Configurar sitio por defecto
-echo "$SITE_NAME" > sites/currentsite.txt
+echo \"$SITE_NAME\" > sites/currentsite.txt
 
 # Construir assets
-echo "🎨 Construyendo assets..."
-bench --site "$SITE_NAME" build --production || bench --site "$SITE_NAME" build
+echo \"🎨 Construyendo assets...\"
+bench --site \"$SITE_NAME\" build --production || bench --site \"$SITE_NAME\" build
 
-echo "🎉 ¡Frappe CRM configurado exitosamente!"
-echo "🌐 Sitio disponible en: http://localhost:8000/crm"
-echo "👤 Usuario: Administrator"
-echo "🔑 Contraseña: $ADMIN_PASSWORD"
-
-EOF
+echo \"🎉 ¡Frappe CRM configurado exitosamente!\"
+echo \"🌐 Sitio disponible en: http://localhost:8000/crm\"
+echo \"👤 Usuario: Administrator\"
+echo \"🔑 Contraseña: $ADMIN_PASSWORD\"
+"
 
 # Iniciar Frappe
 echo "🚀 Iniciando servidor Frappe..."
 cd /home/frappe/frappe-bench
-sudo -u frappe bench start --bind 0.0.0.0 --port 8000
+su - frappe -c "cd /home/frappe/frappe-bench && bench start --bind 0.0.0.0 --port 8000"
