@@ -65,7 +65,7 @@ WORKDIR /home/frappe/frappe-bench
 # Copiar código del CRM
 COPY --chown=frappe:frappe . apps/crm/
 
-# Configurar common_site_config.json para localhost
+# Configurar common_site_config.json para contenedor Docker
 RUN echo '{\
     "db_host": "localhost",\
     "db_port": 3306,\
@@ -80,7 +80,9 @@ RUN echo '{\
     "shallow_clone": true,\
     "background_workers": 1,\
     "file_watcher_port": 6787,\
-    "socketio_port": 9000\
+    "socketio_port": 9000,\
+    "host_name": "0.0.0.0",\
+    "webserver_port": 8000\
 }' > sites/common_site_config.json
 
 # Volver a root para configurar servicios

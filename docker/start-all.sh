@@ -77,8 +77,8 @@ bench new-site \"$SITE_NAME\" \
 
 echo \"✅ Sitio creado exitosamente\"
 
-# Configurar sitio por defecto
-echo \"$SITE_NAME\" > sites/currentsite.txt
+# Configurar sitio por defecto (método moderno)
+bench use \"$SITE_NAME\"
 
 # Construir assets
 echo \"🎨 Construyendo assets...\"
@@ -93,4 +93,4 @@ echo \"🔑 Contraseña: $ADMIN_PASSWORD\"
 # Iniciar Frappe
 echo "🚀 Iniciando servidor Frappe..."
 cd /home/frappe/frappe-bench
-su - frappe -c "cd /home/frappe/frappe-bench && bench serve --host 0.0.0.0 --port 8000"
+su - frappe -c "cd /home/frappe/frappe-bench && bench serve"
